@@ -3,7 +3,7 @@ module Main where
 import Data.Text (pack)
 import Parser
 import System.Environment (getArgs)
-import Text.Megaparsec (errorBundlePretty, parse, runParser)
+import Text.Megaparsec (errorBundlePretty, parse)
 
 main :: IO ()
 main = do

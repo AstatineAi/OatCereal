@@ -21,7 +21,10 @@ skipSpace :: Parser ()
 skipSpace = L.space space1 lineCmnt blockCmnt
   where
     lineCmnt = L.skipLineComment "//"
-    blockCmnt = L.skipBlockComment "/*" "*/"
+    blockCmnt = do
+      _ <- try (string "/*" <* notFollowedBy (char '@'))
+      _ <- manyTill anySingle (try (string "*/"))
+      return ()
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme skipSpace
@@ -88,7 +91,7 @@ parseType = Debug.dbg "parseType" $ do
           TRef <$> (RFun <$> (lparen *> sepBy parseType comma <* rparen) <*> (symbol "->" *> parseType))
         ]
   Debug.dbg "arraySuffix" $
-    foldl (\t _ -> TRef (RArray t)) core <$> many (lbracket *> rbracket <* skipSpace)
+    foldl (\t _ -> TRef (RArray t)) core <$> many (try (lbracket *> rbracket))
 
 parseRefType :: Parser RefType
 parseRefType =
@@ -190,14 +193,6 @@ parseNewArrayInit = do
   rbrace
   return $ NewArrInit t e1 u e2
 
-parseIndex :: Parser Exp
-parseIndex = try $ do
-  e1 <- parseExp
-  lbracket
-  e2 <- parseExp
-  rbracket
-  return $ Index e1 e2
-
 parseLength :: Parser Exp
 parseLength = do
   rword "length"
@@ -205,14 +200,6 @@ parseLength = do
   e <- parseExp
   rparen
   return $ Length e
-
-parseCall :: Parser Exp
-parseCall = Debug.dbg "parseCall" $ do
-  e <- parseExp
-  lparen
-  es <- sepBy parseExp comma
-  rparen
-  return $ Call e es
 
 parseParens :: Parser Exp
 parseParens = Debug.dbg "parseParens" $ between lparen rparen parseExp
@@ -246,8 +233,10 @@ parseStmt = do
   choice
     [ parseIf,
       parseWhile,
+      parseFor,
       parseRet,
-      parseAssn,
+      try parseAssn,
+      parseSCall,
       parseVarDecl
     ]
 
@@ -257,7 +246,7 @@ parseLhs =
     choice
       [ Id <$> identifier,
         do
-          e1 <- parseExp
+          e1 <- parsePrimaryExp
           lbracket
           e2 <- parseExp
           rbracket
@@ -290,13 +279,13 @@ parseRet = do
   return $ Ret e
 
 parseSCall :: Parser Stmt
-parseSCall = do
-  e <- parseExp
+parseSCall = Debug.dbg "parseSCall" $ do
+  e_f <- parseTerm
   lparen
   es <- sepBy parseExp comma
   rparen
   semi
-  return $ SCall e es
+  return $ SCall e_f es
 
 parseIf :: Parser Stmt
 parseIf = Debug.dbg "parseIf" $ do
@@ -311,8 +300,8 @@ parseElse :: Parser [Stmt]
 parseElse =
   Debug.dbg "parseElse" $
     choice
-      [ [] <$ rword "else" <* parseBlock,
-        [] <$ rword "else" <* parseIf,
+      [ rword "else" *> parseBlock,
+        rword "else" *> ((: []) <$> parseIf),
         return []
       ]
 
@@ -342,9 +331,26 @@ parseFor = do
 parseBlock :: Parser [Stmt]
 parseBlock = Debug.dbg "parseBlock" $ between lbrace rbrace (many parseStmt)
 
+-- New Parser for Refinement Conditions
+parseRefineCond :: Parser RefineCond
+parseRefineCond = Debug.dbg "parseRefineCond" $ do
+  _ <- string "/*@"
+  skipSpace
+  args <- sepBy parseArg comma
+  _ <- symbol "=>"
+  retType <- parseType
+  _ <- lbracket
+  retValId <- identifier
+  mRetCond <- optional (try (symbol "|" *> parseExp))
+  _ <- rbracket
+  skipSpace
+  _ <- string "@*/"
+  skipSpace
+  return $ RefinementCond args retType retValId mRetCond
+
 -- Declarations
 parseTopDecl :: Parser Decl
-parseTopDecl = Debug.dbg "parseTopDecl" parseFdecl
+parseTopDecl = Debug.dbg "parseTopDecl" $ choice [try parseFdecl, parseGdecl]
 
 parseGdecl :: Parser Decl
 parseGdecl = Debug.dbg "parseGdecl" $ do
@@ -357,12 +363,13 @@ parseGdecl = Debug.dbg "parseGdecl" $ do
 
 parseFdecl :: Parser Decl
 parseFdecl = Debug.dbg "parseFdecl" $ do
+  mRefine <- optional (try parseRefineCond)
   rt <- parseRetType
   ident <- identifier
   lparen
   args <- sepBy parseArg comma
   rparen
-  Fdecl rt ident args <$> parseBlock
+  Fdecl mRefine rt ident args <$> parseBlock
 
 parseRetType :: Parser RetType
 parseRetType =

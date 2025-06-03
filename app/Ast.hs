@@ -67,10 +67,17 @@ data Stmt
 
 type Block = [Stmt]
 
+data RefineCond = RefinementCond
+  { reArgs :: [(OatType, Id)],
+    reRetType :: OatType,
+    reRetValId :: Id,
+    reRetCond :: Maybe Exp
+  }
+  deriving (Show)
 
 data Decl
   = Gdecl Id (Maybe Exp)
-  | Fdecl RetType Id [(OatType, Id)] Block
+  | Fdecl (Maybe RefineCond) RetType Id [(OatType, Id)] Block
   deriving (Show)
 
 type Prog = [Decl]
