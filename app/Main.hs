@@ -1,9 +1,9 @@
 module Main where
 
+import Data.Text (pack)
 import Parser
 import System.Environment (getArgs)
-import Text.Megaparsec (parse, errorBundlePretty, runParser)
-import Data.Text (pack)
+import Text.Megaparsec (errorBundlePretty, parse, runParser)
 
 main :: IO ()
 main = do

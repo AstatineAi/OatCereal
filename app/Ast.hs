@@ -6,24 +6,24 @@ data OatType
   = TBool
   | TInt
   | TRef RefType
-  deriving Show
+  deriving (Show)
 
 data RefType
   = RString
   | RArray OatType
   | RFun [OatType] OatType
-  deriving Show
+  deriving (Show)
 
 data RetType
   = RetVoid
   | RetVal OatType
-  deriving Show
+  deriving (Show)
 
 data UnOp
   = Neg
   | Lognot
   | Bitnot
-  deriving Show
+  deriving (Show)
 
 data BinOp
   = Add
@@ -37,7 +37,7 @@ data BinOp
   | Gte
   | And
   | Or
-  deriving Show
+  deriving (Show)
 
 data Exp
   = CNull RefType
@@ -53,7 +53,7 @@ data Exp
   | Call Exp [Exp]
   | Bop BinOp Exp Exp
   | Uop UnOp Exp
-  deriving Show
+  deriving (Show)
 
 data Stmt
   = Assn Exp Exp
@@ -63,13 +63,14 @@ data Stmt
   | If Exp [Stmt] [Stmt]
   | For [OatType] (Maybe Exp) (Maybe Stmt) [Stmt]
   | While Exp [Stmt]
-  deriving Show
+  deriving (Show)
 
 type Block = [Stmt]
+
 
 data Decl
   = Gdecl Id (Maybe Exp)
   | Fdecl RetType Id [(OatType, Id)] Block
-  deriving Show
+  deriving (Show)
 
 type Prog = [Decl]

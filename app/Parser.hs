@@ -79,76 +79,82 @@ stringLiteral = lexeme $ char '"' *> manyTill L.charLiteral (char '"')
 -- Types
 parseType :: Parser OatType
 parseType = Debug.dbg "parseType" $ do
-    core <- Debug.dbg "coreType" $ choice
-        [ TBool <$ rword "bool"
-        , TInt <$ rword "int"
-        , TRef RString <$ rword "string"
-        , TRef <$> (RFun <$> (lparen *> sepBy parseType comma <* rparen) <*> (symbol "->" *> parseType))
+  core <-
+    Debug.dbg "coreType" $
+      choice
+        [ TBool <$ rword "bool",
+          TInt <$ rword "int",
+          TRef RString <$ rword "string",
+          TRef <$> (RFun <$> (lparen *> sepBy parseType comma <* rparen) <*> (symbol "->" *> parseType))
         ]
-    Debug.dbg "arraySuffix" $
-      foldl (\t _ -> TRef (RArray t)) core <$> many (lbracket *> rbracket <* skipSpace)
-
+  Debug.dbg "arraySuffix" $
+    foldl (\t _ -> TRef (RArray t)) core <$> many (lbracket *> rbracket <* skipSpace)
 
 parseRefType :: Parser RefType
-parseRefType = Debug.dbg "parseRefType" $
-  choice
-    [ try $ RString <$ rword "string",
-      try $ RArray <$> (parseType <* lbracket <* rbracket),
-      RFun <$> (lparen *> sepBy parseType comma <* rparen) <*> (symbol "->" *> parseType)
-    ]
+parseRefType =
+  Debug.dbg "parseRefType" $
+    choice
+      [ try $ RString <$ rword "string",
+        try $ RArray <$> (parseType <* lbracket <* rbracket),
+        RFun <$> (lparen *> sepBy parseType comma <* rparen) <*> (symbol "->" *> parseType)
+      ]
 
 parseNullRefType :: Parser RefType
 parseNullRefType = Debug.dbg "parseNullRefType" $ do
   ot <- parseType
   case ot of
     TRef rt -> return rt
-    _       -> fail "CNull: 'null' must be followed by a reference type (string, array, or function)"
+    _ -> fail "CNull: 'null' must be followed by a reference type (string, array, or function)"
 
 -- Expressions
 parseExp :: Parser Exp
 parseExp = Debug.dbg "parseExp" $ makeExprParser parseTerm operatorTable
 
 parsePrimaryExp :: Parser Exp
-parsePrimaryExp = Debug.dbg "parsePrimaryExp" $ choice
-    [ CNull <$> (rword "null" *> parseNullRefType)
-    , CBool True <$ rword "true"
-    , CBool False <$ rword "false"
-    , CInt <$> integer
-    , CStr <$> stringLiteral
-    , Id <$> identifier
-    , parseArrayLiteral
-    , parseNewArray
-    , parseNewArrayInit
-    , parseLength
-    , parseParens
-    ]
+parsePrimaryExp =
+  Debug.dbg "parsePrimaryExp" $
+    choice
+      [ CNull <$> (rword "null" *> parseNullRefType),
+        CBool True <$ rword "true",
+        CBool False <$ rword "false",
+        CInt <$> integer,
+        CStr <$> stringLiteral,
+        Id <$> identifier,
+        parseArrayLiteral,
+        parseNewArray,
+        parseNewArrayInit,
+        parseLength,
+        parseParens
+      ]
 
 parseTerm :: Parser Exp
 parseTerm = Debug.dbg "parseTermLoop" $ do
-    e <- parsePrimaryExp
-    let loop currentExp = do
-            mPostfix <- optional $ choice
-                [ try (parseIndexSuffix currentExp)
-                , try (parseCallSuffix currentExp)
-                ]
-            case mPostfix of
-                Nothing      -> return currentExp
-                Just nextExp -> loop nextExp
-    loop e
+  e <- parsePrimaryExp
+  let loop currentExp = do
+        mPostfix <-
+          optional $
+            choice
+              [ try (parseIndexSuffix currentExp),
+                try (parseCallSuffix currentExp)
+              ]
+        case mPostfix of
+          Nothing -> return currentExp
+          Just nextExp -> loop nextExp
+  loop e
 
 parseIndexSuffix :: Exp -> Parser Exp
 parseIndexSuffix e1 = Debug.dbg "parseIndexSuffix" $ do
-    lbracket
-    e2 <- parseExp
-    rbracket
-    return (Index e1 e2)
+  lbracket
+  e2 <- parseExp
+  rbracket
+  return (Index e1 e2)
 
 parseCallSuffix :: Exp -> Parser Exp
 parseCallSuffix e = Debug.dbg "parseCallSuffix" $ do
-    lparen
-    es <- sepBy parseExp comma
-    rparen
-    return (Call e es)
+  lparen
+  es <- sepBy parseExp comma
+  rparen
+  return (Call e es)
 
 parseArrayLiteral :: Parser Exp
 parseArrayLiteral = Debug.dbg "parseArrayLiteral" $ do
@@ -160,7 +166,6 @@ parseArrayLiteral = Debug.dbg "parseArrayLiteral" $ do
   es <- sepBy parseExp comma
   rbrace
   return $ CArr t es
-
 
 parseNewArray :: Parser Exp
 parseNewArray = do
@@ -239,24 +244,25 @@ parseStmt :: Parser Stmt
 parseStmt = do
   notFollowedBy rbrace <?> "statement"
   choice
-    [ parseIf
-    , parseWhile
-    , parseRet
-    , parseAssn
-    , parseVarDecl
+    [ parseIf,
+      parseWhile,
+      parseRet,
+      parseAssn,
+      parseVarDecl
     ]
 
 parseLhs :: Parser Exp
-parseLhs = Debug.dbg "parseLhs" $
-  choice
-    [ Id <$> identifier,
-      do
-        e1 <- parseExp
-        lbracket
-        e2 <- parseExp
-        rbracket
-        return $ Index e1 e2
-    ]
+parseLhs =
+  Debug.dbg "parseLhs" $
+    choice
+      [ Id <$> identifier,
+        do
+          e1 <- parseExp
+          lbracket
+          e2 <- parseExp
+          rbracket
+          return $ Index e1 e2
+      ]
 
 parseAssn :: Parser Stmt
 parseAssn = Debug.dbg "parseAssn" $ do
@@ -302,12 +308,13 @@ parseIf = Debug.dbg "parseIf" $ do
   If e b1 <$> parseElse
 
 parseElse :: Parser [Stmt]
-parseElse = Debug.dbg "parseElse" $
-  choice
-    [ [] <$ rword "else" <* parseBlock,
-      [] <$ rword "else" <* parseIf,
-      return []
-    ]
+parseElse =
+  Debug.dbg "parseElse" $
+    choice
+      [ [] <$ rword "else" <* parseBlock,
+        [] <$ rword "else" <* parseIf,
+        return []
+      ]
 
 parseWhile :: Parser Stmt
 parseWhile = do
