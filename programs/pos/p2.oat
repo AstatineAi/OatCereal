@@ -1,0 +1,11 @@
+/*@ int x, int y => int [r | r == x * x + 2 * x * y + y * y] @*/
+int f(int x, int y) {
+    return (x + y) * (x + y);
+}
+
+/* Wow, addition is associative! */
+
+/*@ int x, int y, int z => int [r | r == x + (y + z)] @*/
+int g(int x, int y, int z) {
+    return (x + y) + z;
+}

@@ -1,0 +1,4 @@
+/*@ int x => int [r | r == 114514] @*/
+int f(int x) {
+    return 0;
+}

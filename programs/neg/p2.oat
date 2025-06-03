@@ -1,0 +1,11 @@
+/*@ int x, int y => int [r | r == x * x + 2 * x * y + 2 * y + y * y - 3 * x] @*/
+int f(int x, int y) {
+    return (x + y) * (x + y);
+}
+
+/* By the way, subtraction is not associative! */
+
+/*@ int x, int y, int z => int [r | r == (x - y) - z] @*/
+int g(int x, int y, int z) {
+    return x - (y - z);
+}
