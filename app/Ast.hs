@@ -22,7 +22,6 @@ data RetType
 data UnOp
   = Neg
   | Lognot
-  | Bitnot
   deriving (Show)
 
 data BinOp

@@ -1,11 +1,4 @@
-global i = 1;
-
 /*@ int x => int [r | r == 0] @*/
 int f(int x) {
     return 0;
-}
-
-/*@ int x => int [r | r == 1] @*/
-int g(int x) {
-    return 1;
 }

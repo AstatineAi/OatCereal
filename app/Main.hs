@@ -1,7 +1,8 @@
 module Main where
 
 import Data.Text (pack)
-import Parser
+import Parser (parseProg)
+import Solver
 import System.Environment (getArgs)
 import Text.Megaparsec (errorBundlePretty, parse)
 
@@ -11,13 +12,23 @@ main = do
   case args of
     [filename] -> do
       contents <- readFile filename
-      putStrLn $ "Parsing file: " ++ filename
-      putStrLn $ "Contents:\n" ++ contents
       case parse parseProg filename (pack contents) of
         Left err -> do
           putStrLn "Parsing failed"
           putStrLn $ errorBundlePretty err
-        Right ast -> do
+        Right src -> 
+          solve src >>= putStrLn
+
+    ["--parse", filename] -> do
+      contents <- readFile filename
+      case parse parseProg filename (pack contents) of
+        Left err -> do
+          putStrLn "Parsing failed"
+          putStrLn $ errorBundlePretty err
+        Right src -> do
           putStrLn "Parsing succeeded"
-          print ast
-    _ -> putStrLn "Usage: OatCereal <filename>"
+          print src
+    _ ->
+      putStrLn
+        "Usage: OatCereal <filename>\n\
+        \OatCereal --parse <filename>\n"

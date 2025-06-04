@@ -62,7 +62,7 @@ executable OatCereal
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules: Ast, Parser
+    other-modules: Ast, Parser, Solver
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -73,7 +73,10 @@ executable OatCereal
         megaparsec ^>= 9.7.0,
         parser-combinators ^>= 1.3.0,
         text ^>= 2.0.2,
-        liquid-fixpoint >=0.9
+        liquid-fixpoint >=0.9,
+        mtl ^>= 2.3.1,
+        containers ^>= 0.6.7,
+        unordered-containers ^>= 0.2.20
 
     -- Directories containing source files.
     hs-source-dirs:   app
